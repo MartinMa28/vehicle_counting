@@ -11,7 +11,7 @@ def density_map_generator(img_shape, points, beta=0.3, k=3):
     The function is used to generate a density map for crowds or vehicles.
 
     args:
-        img_size: An iterable object that indicates the shape (size) of the density map.
+        img_size: An iterable object that indicates the shape (height, width) of the density map.
         points: A list of coordinates (row, col) for the targets, which could be the heads of 
             pedestrians or the center of vehicles. e.g. [(104, 44), (22, 87)]
         beta: The coefficient that makes the standard deviation sigma proportional to
