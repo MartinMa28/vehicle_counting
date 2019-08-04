@@ -27,6 +27,9 @@ def density_map_generator(img_shape, points, beta=0.3, k=3):
     if point_num == 0:
         return density
 
+    if point_num <= 3:
+        k = point_num - 1
+
     # KDTree is used to query the k nearest points for each target.
     # Note that KDTree.query gets the k nearest including the original point.
     tree = KDTree(points.copy(), leafsize=2048)
