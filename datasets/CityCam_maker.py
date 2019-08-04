@@ -32,6 +32,15 @@ def parse_xml(xml_path):
         x_min = int(bnd_box.find('xmin').text)
         y_max = int(bnd_box.find('ymax').text)
         y_min = int(bnd_box.find('ymin').text)
+
+        if x_min < 0:
+            x_min = 0
+        if x_max > width:
+            x_max = width
+        if y_min < 0:
+            y_min = 0
+        if y_max > height:
+            y_max = height
         
         x_center = (x_max + x_min) // 2
         y_center = (y_max + y_min) // 2
@@ -47,6 +56,9 @@ def make_density_map(frame_dir):
     for frame in tqdm(frame_list):
         frame_id, frame_format = frame.split('.')
         if frame_format == 'xml':
+            if os.path.exists(os.path.join(frame_dir, frame_id + '_dm' + '.npy')):
+                continue
+
             img_shape, points = parse_xml(os.path.join(frame_dir, frame))
             density_map = density_map_generator(img_shape, points)
             np.save(os.path.join(frame_dir, frame_id + '_dm'), density_map)
