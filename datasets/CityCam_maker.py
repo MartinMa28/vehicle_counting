@@ -23,6 +23,9 @@ def parse_xml(xml_path):
 
     height = int(root.find('height').text)
     width = int(root.find('width').text)
+    assert height == 240
+    assert width == 352
+    
     vehicles = root.findall('vehicle')
     center_points = []
 
