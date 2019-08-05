@@ -90,17 +90,17 @@ def make_density_map(target_dir):
 if __name__ == "__main__":
     train_list = []
     with open(downtown_train_path) as f:
-        train_list.extend(f.readlines()[:20])
+        train_list.extend(f.readlines()[:50])
     
     with open(pathway_train_path) as f:
-        train_list.extend(f.readlines()[:10])
+        train_list.extend(f.readlines()[:20])
 
     test_list = []
     with open(downtown_test_path) as f:
-        test_list.extend(f.readlines()[:10])
+        test_list.extend(f.readlines()[:20])
 
     with open(pathway_test_path) as f:
-        test_list.extend(f.readlines()[:5])
+        test_list.extend(f.readlines()[:10])
 
     train_list = [sample.strip() for sample in train_list]
     test_list = [sample.strip() for sample in test_list]
