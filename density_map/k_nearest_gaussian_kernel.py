@@ -37,6 +37,7 @@ def density_map_generator(img_shape, points, beta=0.3, k=3):
 
     for i, pt in enumerate(points):
         single_kernel = np.zeros(img_shape, dtype=np.float32)
+        
         assert pt[0] >= 0 and pt[0] < img_shape[0]
         assert pt[1] >= 0 and pt[1] < img_shape[1]
 

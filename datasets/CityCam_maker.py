@@ -1,9 +1,13 @@
 import numpy as np
 import os
+import time
+import datetime
 from tqdm import tqdm
 import sys
 import xml.etree.ElementTree as ET
+from concurrent.futures import ProcessPoolExecutor
 sys.path.append(os.getcwd())
+print(os.getcwd())
 from vehicle_counting.density_map.k_nearest_gaussian_kernel import density_map_generator
 
 
@@ -17,7 +21,7 @@ pathway_test_path = os.path.join(test_train_sep_dir, 'Parkway_Test.txt')
 # Global variables
 
 
-def parse_xml(xml_path):
+def _parse_xml(xml_path):
     tree = ET.parse(xml_path)
     root = tree.getroot()
 
@@ -52,48 +56,73 @@ def parse_xml(xml_path):
 
     return (height, width), center_points
 
+def time_stamp() -> str:
+    ts = time.time()
+    time_stamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    return time_stamp
 
-def make_density_map(frame_dir):
+def _make_density_map(frame_dir):
     # img_shape (height, width)
     frame_list = sorted(os.listdir(frame_dir))
-    for frame in tqdm(frame_list):
+    for frame in frame_list:
         frame_id, frame_format = frame.split('.')
         if frame_format == 'xml':
             if os.path.exists(os.path.join(frame_dir, frame_id + '_dm' + '.npy')):
                 continue
 
-            img_shape, points = parse_xml(os.path.join(frame_dir, frame))
-            density_map = density_map_generator(img_shape, points)
-            np.save(os.path.join(frame_dir, frame_id + '_dm'), density_map)
+            img_shape, points = _parse_xml(os.path.join(frame_dir, frame))
+            try:
+                density_map = density_map_generator(img_shape, points)
+            except AssertionError as e:
+                print(frame_dir)
+                raise e
+            else:
+                np.save(os.path.join(frame_dir, frame_id + '_dm'), density_map)
 
-    
+
+def make_density_map(target_dir):
+    print('Processing: ' + time_stamp() + '- ' + target_dir)
+    camera_dir = os.path.join(citycam_dir, target_dir.split('-')[0])
+    frame_dir = os.path.join(camera_dir, target_dir)
+    _make_density_map(frame_dir)
+
 
 if __name__ == "__main__":
     train_list = []
     with open(downtown_train_path) as f:
-        train_list.extend(f.readlines())
+        train_list.extend(f.readlines()[:20])
     
     with open(pathway_train_path) as f:
-        train_list.extend(f.readlines())
+        train_list.extend(f.readlines()[:10])
 
     test_list = []
     with open(downtown_test_path) as f:
-        test_list.extend(f.readlines())
+        test_list.extend(f.readlines()[:10])
 
     with open(pathway_test_path) as f:
-        test_list.extend(f.readlines())
+        test_list.extend(f.readlines()[:5])
 
     train_list = [sample.strip() for sample in train_list]
     test_list = [sample.strip() for sample in test_list]
 
     print('Computing training set density maps...')
-    for train_dir in tqdm(train_list):
-        camera_dir = os.path.join(citycam_dir, train_dir.split('-')[0])
-        frame_dir = os.path.join(camera_dir, train_dir)
-        make_density_map(frame_dir)
+    # for train_dir in tqdm(train_list):
+    #     camera_dir = os.path.join(citycam_dir, train_dir.split('-')[0])
+    #     frame_dir = os.path.join(camera_dir, train_dir)
+    #     make_density_map(frame_dir)
+
+    with ProcessPoolExecutor(max_workers=None) as executor:
+        results = executor.map(make_density_map, train_list)
+        for r in results:
+            pass
+
 
     print('Computing test set density maps...')
-    for test_dir in tqdm(test_list):
-        camera_dir = os.path.join(citycam_dir, test_dir.split('-')[0])
-        frame_dir = os.path.join(camera_dir, test_dir)
-        make_density_map(frame_dir)
+    # for test_dir in tqdm(test_list):
+    #     camera_dir = os.path.join(citycam_dir, test_dir.split('-')[0])
+    #     frame_dir = os.path.join(camera_dir, test_dir)
+    #     make_density_map(frame_dir)
+    with ProcessPoolExecutor(max_workers=None) as executor:
+        results = executor.map(make_density_map, test_list)
+        for r in results:
+            pass
