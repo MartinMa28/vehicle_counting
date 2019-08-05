@@ -90,39 +90,31 @@ def make_density_map(target_dir):
 if __name__ == "__main__":
     train_list = []
     with open(downtown_train_path) as f:
-        train_list.extend(f.readlines()[:50])
+        train_list.extend(f.readlines()[:20])
     
     with open(pathway_train_path) as f:
-        train_list.extend(f.readlines()[:20])
+        train_list.extend(f.readlines()[:10])
 
     test_list = []
     with open(downtown_test_path) as f:
-        test_list.extend(f.readlines()[:20])
+        test_list.extend(f.readlines()[:10])
 
     with open(pathway_test_path) as f:
-        test_list.extend(f.readlines()[:10])
+        test_list.extend(f.readlines()[:5])
 
     train_list = [sample.strip() for sample in train_list]
     test_list = [sample.strip() for sample in test_list]
 
     print('Computing training set density maps...')
-    # for train_dir in tqdm(train_list):
-    #     camera_dir = os.path.join(citycam_dir, train_dir.split('-')[0])
-    #     frame_dir = os.path.join(camera_dir, train_dir)
-    #     make_density_map(frame_dir)
 
     with ProcessPoolExecutor(max_workers=None) as executor:
         results = executor.map(make_density_map, train_list)
-        for r in results:
-            pass
-
+    
+    tuple(results)
 
     print('Computing test set density maps...')
-    # for test_dir in tqdm(test_list):
-    #     camera_dir = os.path.join(citycam_dir, test_dir.split('-')[0])
-    #     frame_dir = os.path.join(camera_dir, test_dir)
-    #     make_density_map(frame_dir)
+    
     with ProcessPoolExecutor(max_workers=None) as executor:
         results = executor.map(make_density_map, test_list)
-        for r in results:
-            pass
+    
+    tuple(results)
