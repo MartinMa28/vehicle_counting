@@ -4,11 +4,11 @@ from tqdm import tqdm
 import sys
 import xml.etree.ElementTree as ET
 sys.path.append(os.getcwd())
-from density_map.k_nearest_gaussian_kernel import density_map_generator
+from vehicle_counting.density_map.k_nearest_gaussian_kernel import density_map_generator
 
 
 # Global variables
-citycam_dir = 'CityCam/'
+citycam_dir = 'vehicle_counting/CityCam/'
 test_train_sep_dir = os.path.join(citycam_dir, 'train_test_separation')
 downtown_train_path = os.path.join(test_train_sep_dir, 'Downtown_Train.txt')
 downtown_test_path = os.path.join(test_train_sep_dir, 'Downtown_Test.txt')
@@ -71,17 +71,17 @@ def make_density_map(frame_dir):
 if __name__ == "__main__":
     train_list = []
     with open(downtown_train_path) as f:
-        train_list.extend(f.readlines()[:20])
+        train_list.extend(f.readlines())
     
     with open(pathway_train_path) as f:
-        train_list.extend(f.readlines()[:10])
+        train_list.extend(f.readlines())
 
     test_list = []
     with open(downtown_test_path) as f:
-        test_list.extend(f.readlines()[:10])
+        test_list.extend(f.readlines())
 
     with open(pathway_test_path) as f:
-        test_list.extend(f.readlines()[:5])
+        test_list.extend(f.readlines())
 
     train_list = [sample.strip() for sample in train_list]
     test_list = [sample.strip() for sample in test_list]
