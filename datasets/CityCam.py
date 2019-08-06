@@ -29,10 +29,16 @@ class CityCam(Dataset):
 
         frame_dirs = []
         with open(downtown_path) as f:
-            frame_dirs.extend(f.readlines())
+            if dataset_type == 'Train':
+                frame_dirs.extend(f.readlines()[:50])
+            else:
+                frame_dirs.extend(f.readlines()[:20])
 
         with open(parkway_path) as f:
-            frame_dirs.extend(f.readlines())
+            if dataset_type == 'Train':
+                frame_dirs.extend(f.readlines()[:15])
+            else:
+                frame_dirs.extend(f.readlines()[:10])
 
         frame_dirs = [fd.strip() for fd in frame_dirs]
         for fd in frame_dirs:

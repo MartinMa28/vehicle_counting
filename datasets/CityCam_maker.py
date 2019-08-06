@@ -7,17 +7,16 @@ import sys
 import xml.etree.ElementTree as ET
 from concurrent.futures import ProcessPoolExecutor
 sys.path.append(os.getcwd())
-print(os.getcwd())
-from vehicle_counting.density_map.k_nearest_gaussian_kernel import density_map_generator
+from density_map.k_nearest_gaussian_kernel import density_map_generator
 
 
 # Global variables
-citycam_dir = 'vehicle_counting/CityCam/'
+citycam_dir = 'CityCam/'
 test_train_sep_dir = os.path.join(citycam_dir, 'train_test_separation')
 downtown_train_path = os.path.join(test_train_sep_dir, 'Downtown_Train.txt')
 downtown_test_path = os.path.join(test_train_sep_dir, 'Downtown_Test.txt')
-pathway_train_path = os.path.join(test_train_sep_dir, 'Parkway_Train.txt')
-pathway_test_path = os.path.join(test_train_sep_dir, 'Parkway_Test.txt')
+parkway_train_path = os.path.join(test_train_sep_dir, 'Parkway_Train.txt')
+parkway_test_path = os.path.join(test_train_sep_dir, 'Parkway_Test.txt')
 # Global variables
 
 
@@ -70,18 +69,23 @@ def _make_density_map(frame_dir):
             if os.path.exists(os.path.join(frame_dir, frame_id + '_dm' + '.npy')):
                 continue
 
-            img_shape, points = _parse_xml(os.path.join(frame_dir, frame))
+            # img_shape, points = _parse_xml(os.path.join(frame_dir, frame))
             try:
+                img_shape, points = _parse_xml(os.path.join(frame_dir, frame))
                 density_map = density_map_generator(img_shape, points)
             except AssertionError as e:
                 print(frame_dir)
+                raise e
+            except Exception as e:
+                print(frame_dir)
+                print(e)
                 raise e
             else:
                 np.save(os.path.join(frame_dir, frame_id + '_dm'), density_map)
 
 
 def make_density_map(target_dir):
-    print('Processing: ' + time_stamp() + '- ' + target_dir)
+    print('Processing: ' + time_stamp() + ' - ' + target_dir)
     camera_dir = os.path.join(citycam_dir, target_dir.split('-')[0])
     frame_dir = os.path.join(camera_dir, target_dir)
     _make_density_map(frame_dir)
@@ -92,14 +96,14 @@ if __name__ == "__main__":
     with open(downtown_train_path) as f:
         train_list.extend(f.readlines()[:50])
     
-    with open(pathway_train_path) as f:
+    with open(parkway_train_path) as f:
         train_list.extend(f.readlines()[:15])
 
     test_list = []
     with open(downtown_test_path) as f:
         test_list.extend(f.readlines()[:20])
 
-    with open(pathway_test_path) as f:
+    with open(parkway_test_path) as f:
         test_list.extend(f.readlines()[:10])
 
     train_list = [sample.strip() for sample in train_list]
