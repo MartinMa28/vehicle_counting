@@ -26,7 +26,7 @@ if not os.path.exists('checkpoints'):
     os.mkdir('checkpoints')
 
 if not os.path.exists(checkpoint_dir):
-    os.mkdir(os.path.join('checkpoints', checkpoint_dir))
+    os.mkdir(checkpoint_dir)
 
 def train(pretrained=None):
     """
@@ -49,8 +49,8 @@ def train(pretrained=None):
                 for phase in ('Train', 'Test')}
     
     data_loader = {
-        'train': DataLoader(dataset['Train'], batch_size=6, shuffle=True)
-        'test': DataLoader(dataset['Test'], batch_size=6, shuffle=False)
+        'train': DataLoader(dataset['Train'], batch_size=6, shuffle=True),
+        'val': DataLoader(dataset['Test'], batch_size=6, shuffle=False)
     }
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10)
@@ -70,10 +70,10 @@ def train(pretrained=None):
     
     try:
         for epoch in range(hp.epochs):
-            print(f'Epoch {epoch + 1}/{hp.epochs}')
-            print('-' * 28)
+            print(f'{time_stamp()} - Epoch {epoch + 1}/{hp.epochs}')
+            print(f'{time_stamp()}' + '-' * 28)
 
-            for phase in ('train', 'test'):
+            for phase in ('train', 'val'):
                 if phase == 'train':
                     model.train()
                 else:
@@ -93,8 +93,9 @@ def train(pretrained=None):
                     # zero-grad
                     optimizer.zero_grad()
 
-                    with torch.set_grad_enable(phase == 'train'):
+                    with torch.set_grad_enabled(phase == 'train'):
                         et_dm = model(img)
+                        et_dm = torch.squeeze(et_dm, dim=1)
                         down_sample = nn.Sequential(nn.MaxPool2d(2), nn.MaxPool2d(2))
                         down_gt_dm = down_sample(gt_dm)
 
@@ -108,7 +109,7 @@ def train(pretrained=None):
                             optimizer.step()
 
                         if (idx + 1) % 50 == 0:
-                            print('Batch {}: running loss = {0:.6f}, running AE = {0:.4f}, running SE = {0:.4f}'.format(
+                            print(f'{time_stamp()} - ' + 'Batch {}: running loss = {:.6f}, running AE = {:.4f}, running SE = {:.4f}'.format(
                                 idx + 1, epoch_loss, epoch_mae, epoch_mse))
                 
                 mean_epoch_loss = epoch_loss / len(data_loader[phase])
@@ -125,7 +126,7 @@ def train(pretrained=None):
                         'loss': mean_epoch_loss,
                         'mae': epoch_mae
                     }, os.path.join(checkpoint_dir, f'epoch_{epoch + 1}.pt'))
-                    print(f'Saved the model at epoch {epoch + 1}.')
+                    print(f'{time_stamp()} - Saved the model at epoch {epoch + 1}.')
 
                 if phase == 'val' and epoch_mae < min_mae:
                     min_mae = epoch_mae
@@ -136,7 +137,7 @@ def train(pretrained=None):
                         'loss': mean_epoch_loss,
                         'mae': epoch_mae
                     }, os.path.join(checkpoint_dir, f'best_model.pt'))
-                    print(f'Saved the best model at epoch {epoch + 1}.')
+                    print(f'{time_stamp()} - Saved the best model at epoch {epoch + 1}.')
     
     except KeyboardInterrupt:
         model.load_state_dict(best_model_weights)

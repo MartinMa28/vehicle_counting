@@ -84,7 +84,7 @@ class ToTensor():
         vehicle_num = sample['gt_count']
 
         return {
-            'image': torch.from_numpy(img),
-            'density_map': torch.from_numpy(density_map),
+            'image': torch.from_numpy(img).float(),
+            'density_map': torch.from_numpy(density_map).float(),
             'gt_count': vehicle_num
         }
