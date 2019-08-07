@@ -5,6 +5,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 import metrics.counting_metrics as cm
 import os
+import numpy as np
 import math
 import copy
 
@@ -101,10 +102,10 @@ def train(pretrained=None):
                         down_sample = nn.Sequential(nn.MaxPool2d(2), nn.MaxPool2d(2))
                         down_gt_dm = down_sample(gt_dm)
 
-                        loss = criterion(down_gt_dm, et_dm)
+                        loss = criterion(et_dm, down_gt_dm)
                         epoch_loss += loss.item()
-                        epoch_mae += cm.mae(et_dm, gt_dm).item()
-                        epoch_mse += cm.mse(et_dm, gt_dm).item()
+                        epoch_mae += cm.mae(et_dm, down_gt_dm).item()
+                        epoch_mse += cm.mse(et_dm, down_gt_dm).item()
 
                         if phase == 'train':
                             loss.backward()
@@ -120,7 +121,7 @@ def train(pretrained=None):
                 loss_list.append(mean_epoch_loss)
                 mae_list.append(epoch_mae)
                 mse_list.append(epoch_mse)
-                
+
                 print(f'{time_stamp()} - ' + 'Epoch {} - {}: epoch loss = {:.4f}, MAE = {:.4f}, MSE = {:.4f}'.format(
                     epoch + 1, phase, mean_epoch_loss, epoch_mae, epoch_mse
                 ))
@@ -129,8 +130,8 @@ def train(pretrained=None):
                     torch.save({
                         'epoch': epoch + 1,
                         'model_state_dict': model.state_dict(),
-                        'loss': mean_epoch_loss,
-                        'mae': epoch_mae
+                        'loss': loss_list,
+                        'mae': mae_list
                     }, os.path.join(checkpoint_dir, f'epoch_{epoch + 1}.pt'))
                     print(f'{time_stamp()} - Saved the model at epoch {epoch + 1}.')
 
@@ -140,8 +141,8 @@ def train(pretrained=None):
                     torch.save({
                         'epoch': epoch + 1,
                         'model_state_dict': model.state_dict(),
-                        'loss': mean_epoch_loss,
-                        'mae': epoch_mae
+                        'loss': loss_list,
+                        'mae': mae_list
                     }, os.path.join(checkpoint_dir, f'best_model.pt'))
                     print(f'{time_stamp()} - Saved the best model at epoch {epoch + 1}.')
     
@@ -150,8 +151,8 @@ def train(pretrained=None):
         torch.save({
             'epoch': epoch + 1,
             'model_state_dict': model.state_dict(),
-            'loss': mean_epoch_loss,
-            'mae': epoch_mae
+            'loss': loss_list,
+            'mae': mae_list
         }, os.path.join(checkpoint_dir, f'best_model.pt'))
         print(f'Saved the best model at epoch {epoch + 1}.')
         quit()

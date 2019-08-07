@@ -1,4 +1,4 @@
-learning_rate = 1e-4
+learning_rate = 1e-6
 momentum = 0.95
 epochs = 50
 batch_size = 8
