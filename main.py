@@ -17,7 +17,7 @@ import hyper_param_conf as hp
 # Global variables
 use_gpu = torch.cuda.is_available()
 dataset_dir = 'CityCam/'
-hyper_params = f'Epochs-{hp.epochs}_LR-{hp.learning_rate}_Momentum-{hp.momentum}_Version-{hp.version}'
+hyper_params = f'Epochs-{hp.epochs}_BatchSize-{hp.batch_size}_LR-{hp.learning_rate}_Momentum-{hp.momentum}_Version-{hp.version}'
 checkpoint_dir = os.path.join('checkpoints', hyper_params)
 device = torch.device('cuda:0' if use_gpu else 'cpu')
 # Global variables
@@ -49,8 +49,8 @@ def train(pretrained=None):
                 for phase in ('Train', 'Test')}
     
     data_loader = {
-        'train': DataLoader(dataset['Train'], batch_size=6, shuffle=True),
-        'val': DataLoader(dataset['Test'], batch_size=6, shuffle=False)
+        'train': DataLoader(dataset['Train'], batch_size=hp.batch_size, shuffle=True),
+        'val': DataLoader(dataset['Test'], batch_size=hp.batch_size, shuffle=False)
     }
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10)
@@ -76,8 +76,10 @@ def train(pretrained=None):
             for phase in ('train', 'val'):
                 if phase == 'train':
                     model.train()
+                    print(f'{time_stamp()} - training...')
                 else:
                     model.eval()
+                    print(f'{time_stamp()} - validating...')
 
                 epoch_loss = 0
                 epoch_mae = 0
@@ -109,7 +111,7 @@ def train(pretrained=None):
                             optimizer.step()
 
                         if (idx + 1) % 50 == 0:
-                            print(f'{time_stamp()} - ' + 'Batch {}: running loss = {:.6f}, running AE = {:.4f}, running SE = {:.4f}'.format(
+                            print(f'{time_stamp()} - ' + 'Batch {}: running loss = {:.4f}, running AE = {:.4f}, running SE = {:.4f}'.format(
                                 idx + 1, epoch_loss, epoch_mae, epoch_mse))
                 
                 mean_epoch_loss = epoch_loss / len(data_loader[phase])
@@ -118,6 +120,10 @@ def train(pretrained=None):
                 loss_list.append(mean_epoch_loss)
                 mae_list.append(epoch_mae)
                 mse_list.append(epoch_mse)
+                
+                print(f'{time_stamp()} - ' + 'Epoch {} - {}: epoch loss = {:.4f}, MAE = {:.4f}, MSE = {:.4f}'.format(
+                    epoch + 1, phase, mean_epoch_loss, epoch_mae, epoch_mse
+                ))
 
                 if phase == 'val' and (epoch + 1) % 10 == 0:
                     torch.save({
