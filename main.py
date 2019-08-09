@@ -9,6 +9,7 @@ import numpy as np
 import math
 import copy
 import logging
+import signal
 
 from counting_datasets.CityCam import CityCam
 from counting_datasets.CityCam_maker import time_stamp
@@ -19,7 +20,7 @@ import hyper_param_conf as hp
 # Global variables
 use_gpu = torch.cuda.is_available()
 dataset_dir = 'CityCam/'
-hyper_params = f'Epochs-{hp.epochs}_BatchSize-{hp.batch_size}_LR-{hp.learning_rate}_Momentum-{hp.momentum}_Version-{hp.version}'
+hyper_params = f'Epochs-{hp.epochs}_BatchSize-{hp.batch_size}_LR-{hp.learning_rate}_Momentum-{hp.momentum}_Gamma-{hp.gamma}_Version-{hp.version}'
 checkpoint_dir = os.path.join('checkpoints', hyper_params)
 device = torch.device('cuda:0' if use_gpu else 'cpu')
 
@@ -72,7 +73,7 @@ def train(pretrained=None):
         'val': DataLoader(dataset['Test'], batch_size=hp.batch_size, shuffle=False)
     }
 
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=hp.gamma)
 
     if pretrained:
         logger.info('loading the pretrained model...')
@@ -88,84 +89,7 @@ def train(pretrained=None):
     min_mae = 9999999
     best_model_weights = copy.deepcopy(model.state_dict())
     
-    try:
-        for epoch in range(hp.epochs):
-            logger.info(f'Epoch {epoch + 1}/{hp.epochs}')
-            logger.info('-' * 28)
-
-            for phase in ('train', 'val'):
-                if phase == 'train':
-                    model.train()
-                    logger.info('training...')
-                else:
-                    model.eval()
-                    logger.info('validating...')
-
-                epoch_loss = 0
-                epoch_mae = 0
-                epoch_mse = 0
-                for idx, batch in enumerate(data_loader[phase]):
-                    img = batch['image']
-                    gt_dm = batch['density_map']
-                    gt_count = batch['gt_count']
-
-                    img = img.to(device)
-                    gt_dm = gt_dm.to(device)
-
-                    # zero-grad
-                    optimizer.zero_grad()
-
-                    with torch.set_grad_enabled(phase == 'train'):
-                        et_dm = model(img)
-                        et_dm = torch.squeeze(et_dm, dim=1)
-                        down_sample = nn.Sequential(nn.MaxPool2d(2), nn.MaxPool2d(2))
-                        down_gt_dm = down_sample(gt_dm)
-
-                        loss = criterion(et_dm, down_gt_dm)
-                        epoch_loss += loss.item()
-                        epoch_mae += cm.mae(et_dm, down_gt_dm).item()
-                        epoch_mse += cm.mse(et_dm, down_gt_dm).item()
-
-                        if phase == 'train':
-                            loss.backward()
-                            optimizer.step()
-
-                        if (idx + 1) % 100 == 0:
-                            logger.debug('Batch {}: running loss = {:.4f}, running AE = {:.4f}, running SE = {:.4f}'.format(
-                                idx + 1, epoch_loss, epoch_mae, epoch_mse))
-                
-                mean_epoch_loss = epoch_loss / len(data_loader[phase])
-                epoch_mae = epoch_mae / len(data_loader[phase])
-                epoch_mse = math.sqrt(epoch_mse / len(data_loader[phase]))
-                loss_list.append(mean_epoch_loss)
-                mae_list.append(epoch_mae)
-                mse_list.append(epoch_mse)
-
-                logger.info('Epoch {} - {}: epoch loss = {:.4f}, MAE = {:.4f}, MSE = {:.4f}'.format(
-                    epoch + 1, phase, mean_epoch_loss, epoch_mae, epoch_mse
-                ))
-
-                if phase == 'val' and (epoch + 1) % 10 == 0:
-                    torch.save({
-                        'epoch': epoch + 1,
-                        'model_state_dict': model.state_dict(),
-                        'loss': loss_list,
-                        'mae': mae_list
-                    }, os.path.join(checkpoint_dir, f'epoch_{epoch + 1}.pt'))
-                    logger.info(f'Saved the model at epoch {epoch + 1}.')
-
-                if phase == 'val' and epoch_mae < min_mae:
-                    min_mae = epoch_mae
-                    best_model_weights = copy.deepcopy(model.state_dict())
-                    torch.save({
-                        'epoch': epoch + 1,
-                        'model_state_dict': model.state_dict(),
-                        'loss': loss_list,
-                        'mae': mae_list
-                    }, os.path.join(checkpoint_dir, f'best_model.pt'))
-                    logger.info(f'Saved the best model at epoch {epoch + 1}.')
-    
-    except KeyboardInterrupt:
+    def term_int_handler(sig_num, frame):
         model.load_state_dict(best_model_weights)
         torch.save({
             'epoch': epoch + 1,
@@ -175,7 +99,87 @@ def train(pretrained=None):
         }, os.path.join(checkpoint_dir, f'best_model.pt'))
         logger.info(f'Saved the best model at epoch {epoch + 1}.')
         quit()
+    
+    signal.signal(signal.SIGINT, term_int_handler)
+    signal.signal(signal.SIGTERM, term_int_handler)
+    
+    
+    for epoch in range(hp.epochs):
+        logger.info(f'Epoch {epoch + 1}/{hp.epochs}')
+        logger.info('-' * 28)
 
+        for phase in ('train', 'val'):
+            if phase == 'train':
+                model.train()
+                logger.info('training...')
+            else:
+                model.eval()
+                logger.info('validating...')
+
+            epoch_loss = 0
+            epoch_mae = 0
+            epoch_mse = 0
+            for idx, batch in enumerate(data_loader[phase]):
+                img = batch['image']
+                gt_dm = batch['density_map']
+                gt_count = batch['gt_count']
+
+                img = img.to(device)
+                gt_dm = gt_dm.to(device)
+
+                # zero-grad
+                optimizer.zero_grad()
+
+                with torch.set_grad_enabled(phase == 'train'):
+                    et_dm = model(img)
+                    et_dm = torch.squeeze(et_dm, dim=1)
+                    down_sample = nn.Sequential(nn.MaxPool2d(2), nn.MaxPool2d(2))
+                    down_gt_dm = down_sample(gt_dm)
+
+                    loss = criterion(et_dm, down_gt_dm)
+                    epoch_loss += loss.item()
+                    epoch_mae += cm.mae(et_dm, down_gt_dm).item()
+                    epoch_mse += cm.mse(et_dm, down_gt_dm).item()
+
+                    if phase == 'train':
+                        loss.backward()
+                        optimizer.step()
+
+                    if (idx + 1) % 100 == 0:
+                        logger.debug('Batch {}: running loss = {:.4f}, running AE = {:.4f}, running SE = {:.4f}'.format(
+                            idx + 1, epoch_loss, epoch_mae, epoch_mse))
+            
+            mean_epoch_loss = epoch_loss / len(data_loader[phase])
+            epoch_mae = epoch_mae / len(data_loader[phase])
+            epoch_mse = math.sqrt(epoch_mse / len(data_loader[phase]))
+            loss_list.append(mean_epoch_loss)
+            mae_list.append(epoch_mae)
+            mse_list.append(epoch_mse)
+
+            logger.info('Epoch {} - {}: epoch loss = {:.4f}, MAE = {:.4f}, MSE = {:.4f}'.format(
+                epoch + 1, phase, mean_epoch_loss, epoch_mae, epoch_mse
+            ))
+
+            if phase == 'val' and (epoch + 1) % 10 == 0:
+                torch.save({
+                    'epoch': epoch + 1,
+                    'model_state_dict': model.state_dict(),
+                    'loss': loss_list,
+                    'mae': mae_list
+                }, os.path.join(checkpoint_dir, f'epoch_{epoch + 1}.pt'))
+                logger.info(f'Saved the model at epoch {epoch + 1}.')
+
+            if phase == 'val' and epoch_mae < min_mae:
+                min_mae = epoch_mae
+                best_model_weights = copy.deepcopy(model.state_dict())
+                torch.save({
+                    'epoch': epoch + 1,
+                    'model_state_dict': model.state_dict(),
+                    'loss': loss_list,
+                    'mae': mae_list
+                }, os.path.join(checkpoint_dir, f'best_model.pt'))
+                logger.info(f'Saved the best model at epoch {epoch + 1}.')
+    
 
 if __name__ == "__main__":
     train(pretrained=hp.pretrained_model_path)
