@@ -8,6 +8,7 @@ import os
 import numpy as np
 import math
 import copy
+import logging
 
 from counting_datasets.CityCam import CityCam
 from counting_datasets.CityCam_maker import time_stamp
@@ -21,13 +22,30 @@ dataset_dir = 'CityCam/'
 hyper_params = f'Epochs-{hp.epochs}_BatchSize-{hp.batch_size}_LR-{hp.learning_rate}_Momentum-{hp.momentum}_Version-{hp.version}'
 checkpoint_dir = os.path.join('checkpoints', hyper_params)
 device = torch.device('cuda:0' if use_gpu else 'cpu')
-# Global variables
 
 if not os.path.exists('checkpoints'):
     os.mkdir('checkpoints')
 
 if not os.path.exists(checkpoint_dir):
     os.mkdir(checkpoint_dir)
+
+if not os.path.exists('logs'):
+    os.mkdir('logs')
+
+logger = logging.getLogger('main')
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler(os.path.join('logs', hyper_params + '.log'))
+fh.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
+logger.addHandler(fh)
+logger.addHandler(ch)
+logger.info(hyper_params)
+# Global variables
+
 
 def train(pretrained=None):
     """
@@ -57,6 +75,7 @@ def train(pretrained=None):
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10)
 
     if pretrained:
+        logger.info('loading the pretrained model...')
         checkpoint = torch.load(pretrained)
         model.load_state_dict(checkpoint['model_state_dict'])
 
@@ -71,16 +90,16 @@ def train(pretrained=None):
     
     try:
         for epoch in range(hp.epochs):
-            print(f'{time_stamp()} - Epoch {epoch + 1}/{hp.epochs}')
-            print(f'{time_stamp()}' + '-' * 28)
+            logger.info(f'Epoch {epoch + 1}/{hp.epochs}')
+            logger.info('-' * 28)
 
             for phase in ('train', 'val'):
                 if phase == 'train':
                     model.train()
-                    print(f'{time_stamp()} - training...')
+                    logger.info('training...')
                 else:
                     model.eval()
-                    print(f'{time_stamp()} - validating...')
+                    logger.info('validating...')
 
                 epoch_loss = 0
                 epoch_mae = 0
@@ -111,8 +130,8 @@ def train(pretrained=None):
                             loss.backward()
                             optimizer.step()
 
-                        if (idx + 1) % 50 == 0:
-                            print(f'{time_stamp()} - ' + 'Batch {}: running loss = {:.4f}, running AE = {:.4f}, running SE = {:.4f}'.format(
+                        if (idx + 1) % 100 == 0:
+                            logger.debug('Batch {}: running loss = {:.4f}, running AE = {:.4f}, running SE = {:.4f}'.format(
                                 idx + 1, epoch_loss, epoch_mae, epoch_mse))
                 
                 mean_epoch_loss = epoch_loss / len(data_loader[phase])
@@ -122,7 +141,7 @@ def train(pretrained=None):
                 mae_list.append(epoch_mae)
                 mse_list.append(epoch_mse)
 
-                print(f'{time_stamp()} - ' + 'Epoch {} - {}: epoch loss = {:.4f}, MAE = {:.4f}, MSE = {:.4f}'.format(
+                logger.info('Epoch {} - {}: epoch loss = {:.4f}, MAE = {:.4f}, MSE = {:.4f}'.format(
                     epoch + 1, phase, mean_epoch_loss, epoch_mae, epoch_mse
                 ))
 
@@ -133,7 +152,7 @@ def train(pretrained=None):
                         'loss': loss_list,
                         'mae': mae_list
                     }, os.path.join(checkpoint_dir, f'epoch_{epoch + 1}.pt'))
-                    print(f'{time_stamp()} - Saved the model at epoch {epoch + 1}.')
+                    logger.info(f'Saved the model at epoch {epoch + 1}.')
 
                 if phase == 'val' and epoch_mae < min_mae:
                     min_mae = epoch_mae
@@ -144,7 +163,7 @@ def train(pretrained=None):
                         'loss': loss_list,
                         'mae': mae_list
                     }, os.path.join(checkpoint_dir, f'best_model.pt'))
-                    print(f'{time_stamp()} - Saved the best model at epoch {epoch + 1}.')
+                    logger.info(f'Saved the best model at epoch {epoch + 1}.')
     
     except KeyboardInterrupt:
         model.load_state_dict(best_model_weights)
@@ -154,9 +173,9 @@ def train(pretrained=None):
             'loss': loss_list,
             'mae': mae_list
         }, os.path.join(checkpoint_dir, f'best_model.pt'))
-        print(f'Saved the best model at epoch {epoch + 1}.')
+        logger.info(f'Saved the best model at epoch {epoch + 1}.')
         quit()
 
 
 if __name__ == "__main__":
-    train()
+    train(pretrained=hp.pretrained_model_path)
