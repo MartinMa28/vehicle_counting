@@ -80,6 +80,7 @@ class ToTensor():
     """Convert ndarrays in sample to Tensors."""
     def __call__(self, sample):
         img = sample['image']
+        img = img / 255
         density_map = sample['density_map']
         vehicle_num = sample['gt_count']
 

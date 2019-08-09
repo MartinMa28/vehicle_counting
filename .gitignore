@@ -111,3 +111,6 @@ CityCam
 
 # model parameters
 checkpoints
+
+# logs
+logs
