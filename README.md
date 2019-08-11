@@ -7,7 +7,7 @@ pip3 install requirements.txt
 ```
 
 ## CityCam dataset
-Download the dataset from the link down below. Each car in the frames is annotated by a bounding box.  
+Download the dataset from the link down below. After that, extract the datasets in the project folder. Each car in the frames is annotated by a bounding box.  
 [CityCam dataset](https://www.citycam-cmu.com/dataset)
 
 ## Density map
