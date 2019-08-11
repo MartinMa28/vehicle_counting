@@ -19,4 +19,4 @@ Gernally speaking, I put a gaussian kernel at the center of every car to generat
 To generate the density maps, just type `python3 counting_datasets/CityCam_maker.py` in the project directory.
 
 ## How to train
-In order to train the model, firstly, set up your hyper parameters in hyper_param_conf.py. And then, execute the main.py script `python3 main.py`. The trained model will be stored in checkpoints/, logs are saved in logs/ for your reference.
+First of all, set up your hyper parameters in hyper_param_conf.py. And then, execute the main.py script `python3 main.py`. The trained model will be stored in checkpoints/, logs will be saved in logs/ for your reference.
