@@ -13,4 +13,10 @@ Download the dataset from the link down below. Each car in the frames is annotat
 ## Density map
 <img src="imgs/og_img.png" alt="original image frame" width="352"/>
 <img src="imgs/density_map.png" alt="generated density map" width="352"/>
+
 Gernally speaking, I put a gaussian kernel at the center of every car to generate a density map for a specific image frame. As for the standard deviation (sigma) of the gaussian kernel, it is determined by the sum of the distances to the k nearest neighbors. Please read this [MCNN paper](https://www.semanticscholar.org/paper/Single-Image-Crowd-Counting-via-Multi-Column-Neural-Zhang-Zhou/427d6d9bc05b07c85fc6b2e52f12132f79a28f6c) for more details. You could find my implementation over here [k_nearest_gaussian_kernel](https://github.com/MartinMa28/vehicle_counting/blob/master/density_map/k_nearest_gaussian_kernel.py).
+
+To generate the density maps, just type `python3 counting_datasets/CityCam_maker.py` in the project directory.
+
+## How to train
+In order to train the model, firstly, set up your hyper parameters in hyper_param_conf.py. And then, execute the main.py script `python3 main.py`. The trained model will be stored in checkpoints/, logs are saved in logs/ for your reference.
