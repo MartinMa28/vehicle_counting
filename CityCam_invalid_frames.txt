@@ -1,4 +1,4 @@
-410-20160430-12     xml files contain &
-410-20160430-15     xml files contain &
-495-20160430-15     xml files contain &
+410-20160430-12     xml files didn't escape '&'
+410-20160430-15     xml files didn't escape '&'
+495-20160430-15     xml files didn't escape '&'
 551-20151224-15_1   000014.xml ymin 1105

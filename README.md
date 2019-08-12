@@ -10,6 +10,8 @@ pip3 install requirements.txt
 Download the dataset from the link down below. After that, extract the datasets in the project folder. Each car in the frames is annotated by a bounding box.  
 [CityCam dataset](https://www.citycam-cmu.com/dataset)
 
+**Note that CityCam contains some bad-formed xml files, in which the annotator failed to escape '&'. I also found that in one specific image frame the 'y_min' of the bounding box is out of the image border. All of invalid data I found has been listed in the `CityCam_invalid_frames.txt`.**
+
 ## Density map
 <img src="imgs/og_img.png" alt="original image frame" width="352"/>
 <img src="imgs/density_map.png" alt="generated density map" width="352"/>
