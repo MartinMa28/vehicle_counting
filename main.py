@@ -15,12 +15,13 @@ from counting_datasets.CityCam import CityCam
 from counting_datasets.CityCam_maker import time_stamp
 from counting_datasets.CityCam import ToTensor
 from models.mcnn import MCNN
+from models.CSRNet import CSRNet
 import hyper_param_conf as hp 
 
 # Global variables
 use_gpu = torch.cuda.is_available()
 dataset_dir = 'CityCam/'
-hyper_params = f'Epochs-{hp.epochs}_BatchSize-{hp.batch_size}_LR-{hp.learning_rate}_Momentum-{hp.momentum}_Gamma-{hp.gamma}_Version-{hp.version}'
+hyper_params = f'CSRNet-Epochs-{hp.epochs}_BatchSize-{hp.batch_size}_LR-{hp.learning_rate}_Momentum-{hp.momentum}_Gamma-{hp.gamma}_Version-{hp.version}'
 checkpoint_dir = os.path.join('checkpoints', hyper_params)
 device = torch.device('cuda:0' if use_gpu else 'cpu')
 
@@ -56,8 +57,8 @@ def train(pretrained=None):
                     new model from scratch. When loading pretrained parameters,
                     this argument should be the path of the checkpoint.
     """
-    model = MCNN()
-    criterion = nn.MSELoss()
+    model = CSRNet()
+    criterion = nn.L1Loss()
     optimizer = optim.SGD(params=model.parameters(),
     lr=hp.learning_rate,
     momentum=hp.momentum)
@@ -133,13 +134,13 @@ def train(pretrained=None):
                 with torch.set_grad_enabled(phase == 'train'):
                     et_dm = model(img)
                     et_dm = torch.squeeze(et_dm, dim=1)
-                    down_sample = nn.Sequential(nn.MaxPool2d(2), nn.MaxPool2d(2))
-                    down_gt_dm = down_sample(gt_dm)
+                    # down_sample = nn.Sequential(nn.MaxPool2d(2), nn.MaxPool2d(2))
+                    # down_gt_dm = down_sample(gt_dm)
 
-                    loss = criterion(et_dm, down_gt_dm)
+                    loss = criterion(et_dm, gt_dm)
                     epoch_loss += loss.item()
-                    epoch_mae += cm.mae(et_dm, down_gt_dm).item()
-                    epoch_mse += cm.mse(et_dm, down_gt_dm).item()
+                    epoch_mae += cm.mae(et_dm, gt_dm).item()
+                    epoch_mse += cm.mse(et_dm, gt_dm).item()
 
                     if phase == 'train':
                         loss.backward()
