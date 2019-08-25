@@ -1,13 +1,11 @@
 import torch
 import torch.nn as nn
 from collections import OrderedDict
+import torch.nn.functional as F
 from torchvision.models.vgg import make_layers, cfgs, vgg16_bn
 
 def make_layers(cfg, in_channels=3, batch_norm=False, dilation=1):
-    
     layers = []
-    if dilation:
-        d_rate = 2
 
     for v in cfg:
         if v == 'M':
@@ -25,7 +23,7 @@ def make_layers(cfg, in_channels=3, batch_norm=False, dilation=1):
 class CSRNet(nn.Module):
     def __init__(self, load_weights=False):
         super(CSRNet, self).__init__()
-        self.frontend_cfg = [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M']
+        self.frontend_cfg = [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512]
         self.backend_cfg = [512, 512, 512, 256, 128, 64]
         self.frontend = make_layers(self.frontend_cfg, batch_norm=True)
         self.backend = make_layers(self.backend_cfg, in_channels=512, batch_norm=True, dilation=2)
@@ -47,6 +45,7 @@ class CSRNet(nn.Module):
         x = self.frontend(x)
         x = self.backend(x)
         x = self.output_layer(x)
+        x = F.interpolate(x, scale_factor=8, mode='bilinear')
 
         return x
 
