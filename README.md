@@ -1,5 +1,5 @@
 # Vehicle counting
-Vehicle counting by density map regression.
+Count vehicle using density map regression.
 
 ## Installation
 ```
